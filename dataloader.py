@@ -28,11 +28,11 @@ def create_spRRT(n_users, n_items, all_ratings, rating_valid, rating_test):
     R_val = np.zeros((n_users, n_items))
     for uid in all_ratings.keys():
         for item in all_ratings[uid]:
-            if item not in rating_test[uid]: # 不是 not item == rating_test[uid] 因为我们的dict values是list
+            if item not in rating_test[uid]: #
                 R_val[uid-1, item-n_users-1] = 1
                 if item not in rating_valid[uid]:
-                    R_tr[uid-1, item-n_users-1] = 1 # idx convert uid:0---n_users-1 itemid:0---n_items-1-n_users 这样可以两个nn.Embedding(n_users) (n_items)
-    uu_collab_adj_mat_tr = np.dot(R_tr, R_tr.T) # 得到的矩阵对角元素巨大ri*ri 其他位置稀疏 options:1.对角元素处理 2.每个item至少n个交互才能稠密
+                    R_tr[uid-1, item-n_users-1] = 1 # 
+    uu_collab_adj_mat_tr = np.dot(R_tr, R_tr.T) # 
     row, col = np.diag_indices_from(uu_collab_adj_mat_tr)
     uu_collab_adj_mat_tr[row, col] = 1
     uu_collab_adj_mat_tr = sp.dok_matrix(uu_collab_adj_mat_tr)
@@ -63,11 +63,11 @@ def create_RRT(n_users, n_items, all_ratings, rating_valid, rating_test):
     R_val = np.zeros((n_users, n_items))
     for uid in all_ratings.keys():
         for item in all_ratings[uid]:
-            if item not in rating_test[uid]: # 不是 not item == rating_test[uid] 因为我们的dict values是list
+            if item not in rating_test[uid]: #
                 R_val[uid-1, item-n_users-1] = 1
                 if item not in rating_valid[uid]:
-                    R_tr[uid-1, item-n_users-1] = 1 # idx convert uid:0---n_users-1 itemid:0---n_items-1-n_users 这样可以两个nn.Embedding(n_users) (n_items)
-    uu_collab_adj_mat_tr = np.dot(R_tr, R_tr.T) # 得到的矩阵对角元素巨大ri*ri 其他位置稀疏 options:1.对角元素处理 2.每个item至少n个交互才能稠密
+                    R_tr[uid-1, item-n_users-1] = 1 # 
+    uu_collab_adj_mat_tr = np.dot(R_tr, R_tr.T) # 
     row, col = np.diag_indices_from(uu_collab_adj_mat_tr)
     uu_collab_adj_mat_tr[row, col] = 1
     uu_collab_adj_mat_tr = normalize_dense(uu_collab_adj_mat_tr)
@@ -143,21 +143,16 @@ def get_adj_mat_shadow(config, args, rating_valid, rating_test):
 
 
 def create_adj_mat(n_users, n_items, all_ratings, rating_valid, rating_test, social_network):
-    """
-      预处理的数据中item_idx += n_users (item_idx from 1)
-      user中只有rating无social的部分已经被去除 所以all_ratings里存下的user全都是1--n_target_users  user_idx:1--n_target_users, n_target_users--n_users
-      social_adj: [n_users, n_users]    collab_adj: [n_users, n_users]  # collab必须设置为n_users  n_target_users---n_users部分的RRT为0就好了 不影响其他用户
-      上述情况在构建邻接矩阵的时候都要考虑
-    """
+
     R_tr = np.zeros((n_users, n_items))
     R_val = np.zeros((n_users, n_items))
     for uid in all_ratings.keys():
         for item in all_ratings[uid]:
-            if item not in rating_test[uid]: # 不是 not item == rating_test[uid] 因为我们的dict values是list
+            if item not in rating_test[uid]: 
                 R_val[uid-1, item-n_users-1] = 1
                 if item not in rating_valid[uid]:
-                    R_tr[uid-1, item-n_users-1] = 1 # idx convert uid:0---n_users-1 itemid:0---n_items-1-n_users 这样可以两个nn.Embedding(n_users) (n_items)
-    uu_collab_adj_mat_tr = np.dot(R_tr, R_tr.T) # 得到的矩阵对角元素巨大ri*ri 其他位置稀疏 options:1.对角元素处理 2.每个item至少n个交互才能稠密
+                    R_tr[uid-1, item-n_users-1] = 1 
+    uu_collab_adj_mat_tr = np.dot(R_tr, R_tr.T) 
     uu_collab_adj_mat_tr = normalize_dense(uu_collab_adj_mat_tr)
     uu_collab_adj_mat_val = np.dot(R_val, R_val.T)
     uu_collab_adj_mat_val = normalize_dense(uu_collab_adj_mat_val)
@@ -165,7 +160,7 @@ def create_adj_mat(n_users, n_items, all_ratings, rating_valid, rating_test, soc
     S = np.zeros((n_users, n_users)) 
     for uid in social_network.keys(): 
         for fid in social_network[uid]: 
-            S[uid-1, fid-1] = 1 # 得到的矩阵非常稀疏 options: 迭代删除social用户等 
+            S[uid-1, fid-1] = 1 
     uu_social_adj_mat = S
     uu_social_adj_mat = normalize_dense(uu_social_adj_mat)
     
@@ -191,21 +186,16 @@ def create_adj_mat(n_users, n_items, all_ratings, rating_valid, rating_test, soc
 
 
 def min_create_adj_mat(n_users, n_items, all_ratings, rating_valid, rating_test, social_network):
-    """
-      预处理的数据中item_idx += n_users (item_idx from 1)
-      user中只有rating无social的部分已经被去除 所以all_ratings里存下的user全都是1--n_target_users  user_idx:1--n_target_users, n_target_users--n_users
-      social_adj: [n_users, n_users]    collab_adj: [n_users, n_users]  # collab必须设置为n_users  n_target_users---n_users部分的RRT为0就好了 不影响其他用户
-      上述情况在构建邻接矩阵的时候都要考虑
-    """
+
     R_tr = np.zeros((n_users, n_items))
     R_val = np.zeros((n_users, n_items))
     for uid in all_ratings.keys():
         for item in all_ratings[uid]:
-            if item not in rating_test[uid]: # 不是 not item == rating_test[uid] 因为我们的dict values是list
+            if item not in rating_test[uid]: 
                 R_val[uid-1, item-n_users-1] = 1
                 if item not in rating_valid[uid]:
-                    R_tr[uid-1, item-n_users-1] = 1 # idx convert uid:0---n_users-1 itemid:0---n_items-1-n_users 这样可以两个nn.Embedding(n_users) (n_items)
-    # uu_collab_adj_mat_tr = np.dot(R_tr, R_tr.T) # 得到的矩阵对角元素巨大ri*ri 其他位置稀疏 options:1.对角元素处理 2.每个item至少n个交互才能稠密
+                    R_tr[uid-1, item-n_users-1] = 1 
+    # uu_collab_adj_mat_tr = np.dot(R_tr, R_tr.T) 
     # uu_collab_adj_mat_tr = normalize_dense(uu_collab_adj_mat_tr)
     # uu_collab_adj_mat_val = np.dot(R_val, R_val.T)
     # uu_collab_adj_mat_val = normalize_dense(uu_collab_adj_mat_val)
@@ -213,7 +203,7 @@ def min_create_adj_mat(n_users, n_items, all_ratings, rating_valid, rating_test,
     S = np.zeros((n_users, n_users)) 
     for uid in social_network.keys(): 
         for fid in social_network[uid]: 
-            S[uid-1, fid-1] = 1 # 得到的矩阵非常稀疏 options: 迭代删除social用户等 
+            S[uid-1, fid-1] = 1
     uu_social_adj_mat = S
     uu_social_adj_mat = normalize_dense(uu_social_adj_mat)
     
@@ -251,21 +241,17 @@ def leave_one_out_split(user_ratings):
     valid_ratings = {}
     test_ratings = {}
     for user in user_ratings:
-        # random.shuffle(user_ratings[user]) # 合理的吗？？
+        # random.shuffle(user_ratings[user]) 
         size = len(user_ratings[user])
         # if size >= 3:
         train_ratings[user] = user_ratings[user][:size-2]
-        valid_ratings[user] = user_ratings[user][size-2:size-1] # 返回单元素的list
+        valid_ratings[user] = user_ratings[user][size-2:size-1] 
         test_ratings[user] = user_ratings[user][size-1:size]
         # else:
         
     return train_ratings, valid_ratings, test_ratings
         
-"""
-dataloader正确做法: 1.if model 输入 [u,i] pair 保证所有的[u,i]pair被遍历 __len__=数据集所有正样本边个数 2. if model 输入 u and 所有i 保证u被遍历 __len__=数据集所有user个数
-总结：总归是训练集所有的正样本边都被训练过
-本次我们采用第一种
-"""
+
 class myTrainset(Dataset):
     """
     注意idx 
@@ -288,16 +274,13 @@ class myTrainset(Dataset):
         return train_data_npy
     
     def __getitem__(self, index):
-        """ 
-        返回对应index的训练数据 (u,i,[neg个负样本])
-        """
         user, pos_item = self.train_data_npy[index][0], self.train_data_npy[index][1] 
         neg_item = np.empty(self.neg, dtype=np.int32)
         for idx in range(self.neg):   
             t = np.random.randint(self.n_users+1, self.n_items+self.n_users+1) # [low, high) itemid: num_of_all_users+1--num_of_nodes
-            while t in self.all_ratings[user]: # 不考虑二次负采样
+            while t in self.all_ratings[user]:
                 t = np.random.randint(self.n_users+1, self.n_items+self.n_users+1)
-            neg_item[idx] = t-self.n_users-1 # 0开始
+            neg_item[idx] = t-self.n_users-1 # 
         return user-1, pos_item-self.n_users-1, neg_item
     
     def __len__(self): # all u,i pair
@@ -314,16 +297,13 @@ class myValidset(Dataset):
         self.valid_data = valid_data # dict
     
     def __getitem__(self, user_idx):
-        """
-        返回对应index的验证数据 (u,i, 999*neg_i)
-        """
         [pos_item] = self.valid_data[user_idx+1]
         neg_items = np.empty(self.n_cnddt, dtype=np.int32)
         for idx in range(self.n_cnddt):
             t = np.random.randint(self.n_users+1, self.n_items+self.n_users+1) # [low, high) itemid: num_of_all_users+1--num_of_nodes
             while t in self.all_ratings[user_idx+1]: 
                 t = np.random.randint(self.n_users+1, self.n_items+self.n_users+1)
-            neg_items[idx] = t-self.n_users-1 # 0开始
+            neg_items[idx] = t-self.n_users-1 # 0
         return user_idx, pos_item-self.n_users-1, neg_items
         
     def __len__(self): # all target users
@@ -331,26 +311,13 @@ class myValidset(Dataset):
 
 def get_train_loader(config, train_data, args):
     dataset = myTrainset(config, train_data, args.neg)
-    # 每次都是随机打乱，然后分成大小为n的若干个mini-batch
-    # droplast默认False https://www.cnblogs.com/vvzhang/p/15636814.html
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True) # 训练必shuffle防止训练集顺序影响模型训练 测试验证不用 
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True) # 训练必shuffle防止训练集顺序影响    训练 测试验证不用 
     return dataloader
 
 def get_valid_loader(config, valid_data, args, num_negs=999):
     dataset = myValidset(config, valid_data, num_negs) # 如果是full test，就改这里；
     dataloader = DataLoader(dataset, batch_size=args.batch_size*2, shuffle=False)
     return dataloader
-
-# 验证dataloader是否正确
-# for batch_idx, (user, pos_item, neg_items) in enumerate(tqdm(train_loader, file=sys.stdout)):
-    # print(user.size()) # [B]
-    # print(pos_item.size()) # [B]
-    # print(neg_items.size()) # [B,neg]
-#     if int(pos_item)+config['n_users']+1 not in train_data[int(user)+1]:
-#         print("wrong")
-#     for i in neg_items[0]:       
-#         if int(i)+config['n_users']+1 in train_data[int(user)+1]:
-#             print("wrong")
 
 
 class atkData(Dataset):
@@ -373,7 +340,6 @@ class atkData(Dataset):
         # if mtd == 'my':
         #     self.shadow_param[]
         for row in self.data_df.itertuples():
-            # dataset 里面的user id对应到emb应该-1；item应该-1-u_len
             user1, user2, y = row.user1, row.user2, row.y
             y = torch.tensor(row.y, dtype=torch.float).to(self.config['gpu_id'])
             if mtd == 'uemb':
@@ -432,7 +398,6 @@ class atkData(Dataset):
 
     def _ablation_get_my_feat(self, user1, user2):
         # w/o social; only interaction;
-        # 去掉behavioral, 只有social的, 得到fused social information
         # user_embs_A = self.shadow_param['user_embs_A.weight']
         user_embs_S = self.shadow_param['user_embs_S.weight']
         if 'item_embs.weight' not in self.shadow_param.keys():
@@ -477,7 +442,7 @@ class atkData(Dataset):
     
     def _get_iemb_by_user(self, user):
         # will return (30, 64)
-        u1_items = torch.tensor(self.rec_result[user]).to(self.config['gpu_id']) # 不用-1，rec result 就是从1开始村的;
+        u1_items = torch.tensor(self.rec_result[user]).to(self.config['gpu_id']) 
         return self.shadow_param['item_embs.weight'][u1_items]
 
     def _get_uemb_feat(self, user1, user2):
@@ -514,8 +479,8 @@ class atkData(Dataset):
     def _get_miner_feat(self, user1, user2):
         user_embs = self.shadow_param['user_embs.weight']
         item_embs = self.shadow_param['item_embs.weight']
-        # rec result 的item id是item emb对应的idx
-        # rec result 的user id是user emb对应idx+1
+        # rec result's item id is the idx corresponding to item emb's idx
+        # rec result's user id is the idx+1 to user emb's idx
         u1_items = torch.tensor(self.rec_result[user1]).to(self.config['gpu_id']) 
         u1_item_embs = item_embs[u1_items]
         u2_emb = user_embs[user2-1]
@@ -551,8 +516,6 @@ class atkData(Dataset):
     def _get_enminer_feat(self, user1, user2):
         user_embs = self.shadow_param['user_embs.weight']
         item_embs = self.shadow_param['item_embs.weight']
-        # rec result 的item id是item emb对应的idx
-        # rec result 的user id是user emb对应idx+1
         u1_items = torch.tensor(self.rec_result[user1]).to(self.config['gpu_id']) 
         u1_item_embs = item_embs[u1_items]
         u2_emb = user_embs[user2-1]
@@ -613,7 +576,6 @@ class defendData(Dataset):
         self.data_x = []
         self.data_y = []
         for row in self.data_df.itertuples():
-            # dataset 里面的user id对应到emb应该-1；item应该-1-u_len
             user1, user2, y = row.user1, row.user2, row.y
             y = torch.tensor(row.y, dtype=torch.float).to(self.args.gpu_id)
             x = self._get_uemb_feat(user1, user2)
@@ -624,10 +586,6 @@ class defendData(Dataset):
     def _get_uemb_by_user(self, user):
         return self.shadow_param['user_embs.weight'][user-1]
     
-    # def _get_iemb_by_user(self, user):
-    #     # will return (30, 64)
-    #     u1_items = torch.tensor(self.rec_result[user]).to(self.config['gpu_id']) # 不用-1，rec result 就是从1开始村的;
-    #     return self.shadow_param['item_embs.weight'][u1_items]
 
     def _get_uemb_feat(self, user1, user2):
         u1_emb = self._get_uemb_by_user(user1)

@@ -51,7 +51,10 @@ python main_shadow.py --is_shadow True --trained_name $trained_name --num_epoch 
 echo -e '\n[INFO] generate mia dataset ...'
 python gen_mia_dataset.py --trained_name $trained_name --dataset $dataset --gpu_id $gpu_id --shadow_ratio $shadow_ratio --rec_lens $rec_lens --model_name $model_name
 
-# 改这个参数--agg_mtd来perform attack baselines
 echo -e '\n[INFO] perform mia attack ...'
-# python mia_attack.py --trained_name $trained_name --dataset $dataset --gpu_id $gpu_id --shadow_ratio $shadow_ratio --rec_lens $rec_lens --model_name $model_name --agg_mtd $base_attack >> $output_path
+# use mia_enhance_attack to perform our proposed attacks
 python mia_enhance_attack.py --trained_name $trained_name --dataset $dataset --gpu_id $gpu_id --shadow_ratio $shadow_ratio --rec_lens $rec_lens >> $output_path
+
+# change the hyperparameter --agg_mtd to perform attack baselines
+# use the following to perform attack baselines
+# python mia_attack.py --trained_name $trained_name --dataset $dataset --gpu_id $gpu_id --shadow_ratio $shadow_ratio --rec_lens $rec_lens --model_name $model_name --agg_mtd $base_attack >> $output_path

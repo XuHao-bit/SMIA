@@ -38,8 +38,6 @@ class InteractionGCN(nn.Module):
         users, items = torch.split(light_out, [num_users, num_items])
         return users, items
     
-
-# 两个GraphLearner分别学两张图 forward:At=cosine similarity(Z) return At, f(At+A)
 class GraphLearner(nn.Module):
     
     def __init__(self, input_size, topk, epsilon, num_pers, device, metric_type, graph_skip_conn):
@@ -62,19 +60,14 @@ class GraphLearner(nn.Module):
             # print("self.weight_tensor.size(): ", self.weight_tensor.size())
             context_fc = feature.unsqueeze(0) * expand_weight_tensor # [1, N, feat_dim]*[4, 1, feat_dim]=[4, N, feat_dim]
             # cosine_similarity(a,b)={a/|a|^2}*{b/|b|^2}
-            context_norm = F.normalize(context_fc, p=2, dim=-1) # 指定维度上做均一化 v/|v|^2 
-            attention = torch.matmul(context_norm, context_norm.transpose(-1, -2)).mean(0) # BB^T=[4, N, feat_dim][4, feat_dim, N]->[N, N]求similarity
+            context_norm = F.normalize(context_fc, p=2, dim=-1) # 
+            attention = torch.matmul(context_norm, context_norm.transpose(-1, -2)).mean(0) # BB^T=[4, N, feat_dim][4, feat_dim, N]->[N, N]
             maskoff_value = 0   
-        # graph structure learning 更新出的图本质上就是attention 每个位置上是对应权重
+
         if self.epsilon is not None:
             attention = self.build_epsilon_neighbourhood(attention, self.epsilon, maskoff_value)
 
-        # if self.topk is not None:
-        #     attention = self.build_knn_neighbourhood(attention, self.topk, maskoff_value)
-        
         assert attention.min().item() >= 0
-        
-        # print(attention.size()) # [7317, 7317]
         
         # learned_graph = normalize_dense(attention)
         learned_graph = attention / torch.clamp(torch.sum(attention, dim=-1, keepdim=True), min=1e-12) # row-normalization 
@@ -142,7 +135,6 @@ class DiffNet_SocialGCN(nn.Module):
         return weight_dict
     
     def forward(self, user_embs, adj):
-        # adj = F.dropout(adj, p=self.dropout, training=self.training) # 必须training=self.training 只有nn.Dropout不需要这样显式声明
         for k in range(self.hop):
             new_user_embs = torch.matmul(adj, user_embs)
             user_embs = torch.matmul(torch.cat([new_user_embs, user_embs], dim=1), self.weight_dict['W_%d' %k])

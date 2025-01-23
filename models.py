@@ -14,8 +14,7 @@ class MyModel(nn.Module):
 
     def full_query(self, users, train_items=None, method=0):
         # users: [B]
-        # 根据train_items修改self.A
-        users_emb, items_emb = self.val_forward(users.long(), self.A, method) # 得到users对应的emb和所有item的emb
+        users_emb, items_emb = self.val_forward(users.long(), self.A, method) # emb
         # items_emb: [M,H] M is the num of items
         # users_emb: [B,H]
         scores = torch.matmul(users_emb, items_emb.t()) # [B,H]*[M,H].t()=[B,M]
@@ -37,7 +36,7 @@ class MyModel(nn.Module):
         neg_logits = defender(neg_uemb)
         neg_mu, neg_sigma = neg_logits.mean(), neg_logits.var()
         # print(pos_mu, pos_sigma)
-        pp_l1 = torch.sqrt((pos_mu-neg_mu)**2 + (pos_sigma-neg_sigma)**2) # 欧氏距离; 距离越小越好，所以loss不加负号;
+        pp_l1 = torch.sqrt((pos_mu-neg_mu)**2 + (pos_sigma-neg_sigma)**2) #
         # pp_l2 = 0.5 * self.pp_kl(pos_mu, pos_sigma, neg_mu, neg_sigma) + 0.5 * self.pp_kl(neg_mu, neg_sigma, pos_mu, pos_sigma)
         # all_pploss = pp_l2
         all_pploss = pp_l1
@@ -147,8 +146,7 @@ class DESIGN(MyModel):
         
         users_emb = all_user_embs[users]
         pos_emb = all_item_embs[pos]
-        neg_emb = all_item_embs[neg] # 经过print size 证实是[B,neg,H]
-        # x[mask] 当mask为LongTensor https://blog.csdn.net/goodxin_ie/article/details/89672700 就跟nn.Embedding(input) 类似
+        neg_emb = all_item_embs[neg] # 
         
         users_emb_social = all_user_embs_social[users]
         pos_emb_social = all_item_embs_social[pos]
@@ -184,7 +182,7 @@ class DESIGN(MyModel):
 
         pos_emb = pos_emb.unsqueeze(1) # [B,1,H]
         neg_emb = neg_emb.unsqueeze(1) # [B,1,H]
-        all_item_embs = torch.cat([pos_emb, neg_emb], dim=1) # [B,2,H] cat方法按输入顺序拼接:先pos_emb, 再negs_emb
+        all_item_embs = torch.cat([pos_emb, neg_emb], dim=1) # [B,2,H] c
         users_emb = users_emb.unsqueeze(1) # [B,1,H]
         pre = torch.mul(users_emb, all_item_embs) # [B,1,H]*[B,2,H]=[B,2,H]
         pre = torch.mean(pre, dim=-1) # [B,2]
@@ -259,7 +257,6 @@ class DESIGN(MyModel):
     def val_forward(self, users, G, mtd=0):
         """
         users:[B] pos:[B] neg:[B, neg] neg=1
-        G 有可能修改过了
         """
         if mtd == 0: # UI+social
             all_user_embs_S = self.socialencoder(self.user_embs.weight, self.S) 
@@ -291,13 +288,13 @@ class DESIGN(MyModel):
     def batch_full_sort_predict(self, users, pos, neg_items, epoch):
         (user_emb, pos_emb, negs_emb, _, _, _, _, _, _, _, _) = self.forward(users.long(), pos.long(), neg_items.long(), epoch)
         pos_emb = pos_emb.unsqueeze(1) # [B,1,H]
-        all_item_embs = torch.cat([pos_emb, negs_emb], dim=1) # [B,N=1+999,H] cat方法按输入顺序拼接:先pos_emb, 再negs_emb
+        all_item_embs = torch.cat([pos_emb, negs_emb], dim=1) # [B,N=1+999,H] 
         user_emb = user_emb.unsqueeze(1) # [B,1,H]
         scores = torch.mul(user_emb, all_item_embs) # [B,1,H]*[B,N,H]=[B,N,H]
         scores = torch.mean(scores, dim=-1) # [B,N] 
 
         scores, indices = torch.sort(scores, dim=-1, descending=True) # torch.sort https://hxhen.com/archives/226
-        rank = torch.argwhere(indices==0)[:,1] # [B] rank最小为0 np.where https://numpy.org/doc/stable/reference/generated/numpy.argwhere.html
+        rank = torch.argwhere(indices==0)[:,1] # [B]    np.where https://numpy.org/doc/stable/reference/generated/numpy.argwhere.html
         isTop10 = (rank<10)
         isTop5 = (rank<5)
         isTop15 = (rank<15)
@@ -343,11 +340,6 @@ class Shadow_Model(nn.Module):
         
         self.sigmoid = torch.nn.Sigmoid()
         
-        # layer
-        # self.user_embs = nn.Embedding(self.n_users, self.hidden) 
-        # self.item_embs = nn.Embedding(self.n_items, self.hidden)
-        # nn.init.xavier_uniform_(self.user_embs.weight)
-        # nn.init.xavier_uniform_(self.item_embs.weight)
         
         self.user1_embs = nn.Embedding(self.n_users, self.hidden)
         self.item1_embs = nn.Embedding(self.n_items, self.hidden)
@@ -453,20 +445,20 @@ class Shadow_Model(nn.Module):
     def batch_full_sort_predict(self, users, pos, neg_items, epoch):
         users_emb_social, pos_emb_social, neg_emb_social, users_emb_rating, pos_emb_rating, neg_emb_rating = self.forward(users.long(), pos.long(), neg_items.long(), epoch)
         pos_emb_social = pos_emb_social.unsqueeze(1) # [B,1,H]
-        all_item_embs_social = torch.cat([pos_emb_social, neg_emb_social], dim=1) # [B,N=1+999,H] cat方法按输入顺序拼接:先pos_emb, 再negs_emb
+        all_item_embs_social = torch.cat([pos_emb_social, neg_emb_social], dim=1) # [B,N=1+999,H] 
         users_emb_social = users_emb_social.unsqueeze(1) # [B,1,H]
         scores_social = torch.mul(users_emb_social, all_item_embs_social) # [B,1,H]*[B,N,H]=[B,N,H]
         scores_social = torch.mean(scores_social, dim=-1) # [B,N] 
 
         pos_emb_rating = pos_emb_rating.unsqueeze(1) # [B,1,H]
-        all_item_embs_rating = torch.cat([pos_emb_rating, neg_emb_rating], dim=1) # [B,N=1+999,H] cat方法按输入顺序拼接:先pos_emb, 再negs_emb
+        all_item_embs_rating = torch.cat([pos_emb_rating, neg_emb_rating], dim=1) # [B,N=1+999,H] 
         users_emb_rating = users_emb_rating.unsqueeze(1) # [B,1,H]
         scores_rating = torch.mul(users_emb_rating, all_item_embs_rating) # [B,1,H]*[B,N,H]=[B,N,H]
         scores_rating = torch.mean(scores_rating, dim=-1) # [B,N] 
 
         scores = (scores_rating + scores_social) / 2
         scores, indices = torch.sort(scores, dim=-1, descending=True) # torch.sort https://hxhen.com/archives/226
-        rank = torch.argwhere(indices==0)[:,1] # [B] rank最小为0 np.where https://numpy.org/doc/stable/reference/generated/numpy.argwhere.html
+        rank = torch.argwhere(indices==0)[:,1] # [B] np.where https://numpy.org/doc/stable/reference/generated/numpy.argwhere.html
         isTop10 = (rank<10)
         isTop5 = (rank<5)
         isTop15 = (rank<15)
@@ -551,9 +543,8 @@ class DiffNet(MyModel):
         all_user_embs = 0.5*all_user_embs_S + 0.5*all_user_embs_A 
         users_emb = all_user_embs[users]
         pos_emb = all_item_embs_A[pos]
-        neg_emb = all_item_embs_A[neg] # 经过print size 证实是[B,neg,H]
-        # x[mask] 当mask为LongTensor https://blog.csdn.net/goodxin_ie/article/details/89672700 就跟nn.Embedding(input) 类似
-        
+        neg_emb = all_item_embs_A[neg] # 
+  
         return users_emb, pos_emb, neg_emb
     
     def l2_loss(self, *weights):
@@ -615,13 +606,13 @@ class DiffNet(MyModel):
     def batch_full_sort_predict(self, users, pos, neg_items, epoch):
         (user_emb, pos_emb, negs_emb) = self.forward(users.long(), pos.long(), neg_items.long(), epoch)
         pos_emb = pos_emb.unsqueeze(1) # [B,1,H]
-        all_item_embs = torch.cat([pos_emb, negs_emb], dim=1) # [B,N=1+999,H] cat方法按输入顺序拼接:先pos_emb, 再negs_emb
+        all_item_embs = torch.cat([pos_emb, negs_emb], dim=1) # [B,N=1+999,H]  
         user_emb = user_emb.unsqueeze(1) # [B,1,H]
         scores = torch.mul(user_emb, all_item_embs) # [B,1,H]*[B,N,H]=[B,N,H]
         scores = torch.mean(scores, dim=-1) # [B,N] 
 
         scores, indices = torch.sort(scores, dim=-1, descending=True) # torch.sort https://hxhen.com/archives/226
-        rank = torch.argwhere(indices==0)[:,1] # [B] rank最小为0 np.where https://numpy.org/doc/stable/reference/generated/numpy.argwhere.html
+        rank = torch.argwhere(indices==0)[:,1] # [B]    np.where https://numpy.org/doc/stable/reference/generated/numpy.argwhere.html
         isTop10 = (rank<10)
         isTop5 = (rank<5)
         isTop15 = (rank<15)

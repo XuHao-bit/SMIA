@@ -10,7 +10,6 @@ from arg_parser import parse_args
 
 args = parse_args()
 seed_all(42)
-# 这里的shadow_name是
 if args.dataset == 'ciao':
     target_name = 'ciao20230314.pkl'
 elif args.dataset == 'flickr':
@@ -55,7 +54,7 @@ for u1 in social_adj_lists.keys():
 pos_len = len(training_dataset['user1'])
 print('pos sample num', pos_len, 'now dataset num', len(already_u_pair))
 
-# num of target users 是参与训练的
+# num of target users 
 n_neg = 0
 while n_neg < pos_len:
     u1 = random.randint(1, num_of_target_users)
@@ -80,8 +79,6 @@ shuffled_df.to_csv(train_data_path, index=False)
 print(f'Training data saved in {train_data_path}')
 print('-'*10)
 
-# 从target graph的正样本中，剔除掉已经在训练集的样本，然后再选择50%作为测试正样本，
-# 然后再选择同样数量的负样本，并且保证负样本在训练集中也没有出现；
 print('\n')
 print('[TEST] generate test dataset')
 all_pos_u_pair = set()
@@ -91,7 +88,7 @@ for u1 in gt_social.keys():
     for u2 in gt_social[u1]:
         all_pos_u_pair.add((u1, u2))
 
-# gen test pos u pair; 数量不多，可以直接存起来
+# gen test pos u pair; 
 test_pos_u_all = all_pos_u_pair - train_pos_u_pair
 test_pos_u_all = list(test_pos_u_all)
 print(f'test all pos pairs: {len(test_pos_u_all)}, train pos pairs: {len(train_pos_u_pair)}')
@@ -103,7 +100,6 @@ random.shuffle(test_pos_u_all)
 test_upair = test_pos_u_all[:len_all//3]
 print(len(test_upair), test_upair[:5])
 
-# 保存test upair的正样本，并生成负样本
 test_dataset = {
     'user1': [],
     'user2': [],
@@ -119,13 +115,11 @@ for upair in test_upair:
 pos_len = len(test_dataset['user1'])
 print(pos_len, len(test_upair))
 
-# 记录gt_graph中的pos pair
 gt_pos_pair = set()
 for u1 in gt_social.keys():
     for u2 in gt_social[u1]:
         gt_pos_pair.add((u1, u2))
 
-# 从gt——graph中生成负样本（而不是从shadow graph中，也不是单纯的从non_shadow_u_pair的补集
 n_neg = 0
 while n_neg < pos_len:
     u1 = random.randint(1, num_of_target_users)

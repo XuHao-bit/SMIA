@@ -1,12 +1,4 @@
-# -*- coding: utf-8 -*-
-# @Time   : 2020/7/17
-# @Author : Shanlei Mu
-# @Email  : slmu@ruc.edu.cn
 
-# UPDATE
-# @Time   : 2021/3/8
-# @Author : Jiawei Guan
-# @Email  : guanjw@ruc.edu.cn
 
 """
 recbole.utils.utils
@@ -36,12 +28,12 @@ def normalize_sp(mx):
 
 def normalize_dense(mx):
     """Row-normalize dense matrix"""
-    # adj 行正则 x/1e-12=0 因为1e-12对应的那些x都是0
+
     mx = mx / np.clip(np.sum(mx, axis=-1, keepdims=True), a_min=1e-12, a_max=None) # VERY_SMALL_NUMBER =1e-12
     return mx
 
 def random_neq(l, r, pos_set):
-    # 随机选择一个不在交互序列中的作为负样本
+
     t = np.random.randint(l, r)
     while t in pos_set:
         t = np.random.randint(l, r)
@@ -107,8 +99,7 @@ def early_stopping(value, best, cur_step, max_step, bigger=False):
     stop_flag = False
     update_flag = False
     if bigger:
-        if value > best:  # 如果想让指标越大越好 则>  并且best初始化为很小的值     如果想让指标越小越好的话 则<    并且best初始化为很大
-            # 的值
+        if value > best:  
             cur_step = 0
             best = value
             update_flag = True
@@ -201,7 +192,7 @@ def initLogging(output_dir):
     """Init for logging
     """
     # t = get_local_time()
-    # output_dir =  f"./log/{args.dataset}" # 模型超参数以及结果保存
+    # output_dir =  f"./log/{args.dataset}" #         
     mkdir_ifnotexist(output_dir)
     mkdir_ifnotexist('./saved')
     # log_dir = os.path.join(output_dir, f'log_{t}.txt')
@@ -292,46 +283,3 @@ def print_config(config):
         print(f'{k}: {config[k]}')
     print('---'*5)
 
-
-    
-# def full_inference(valid_data, train_data, config, valid_loader):
-#     rec_result = {}
-#     users_pos_items, train_pos_len_list = get_pos_items_per_user(valid_data, train_data, config)
-
-#     with torch.no_grad():
-#         positem_pt, vuser_pt = 0, 0 # (1) positem_pt: item point in users_pos_items; (2) vuser_pt: user point in train_pos_len_list
-#         for bidx, (user, pos, negs) in enumerate(tqdm(valid_loader, file=sys.stdout)):
-#             this_bs = user.shape[0]
-#             num_pos_items = sum(train_pos_len_list[vuser_pt: vuser_pt+this_bs]) # get the num of pos items this batch user interacted
-#             batch_mask = users_pos_items[:, positem_pt: positem_pt+num_pos_items]
-#             # print(batch_mask)
-#             batch_mask[0] -= vuser_pt # 在batch中的相对位置
-#             positem_pt += num_pos_items
-#             vuser_pt += this_bs
-
-#             user = user.to(device)  # [B]
-#             # 不同的inference方式
-#             # batch_scores = net.full_query(user, method=1) # social only
-#             batch_scores = net.full_query(user, method=0) # inference from uu+ui graph
-
-#             # print(batch_scores.shape)
-#             # print(batch_mask, batch_mask[0].max(), batch_mask[1].max())
-#             batch_scores[batch_mask[0], batch_mask[1]] = -1e10 # 把batch中的user交互过的pos item给mask掉
-#             _, topk_idx = torch.topk(batch_scores, 30, dim=-1)
-#             # print(topk_idx, topk_idx.shape)
-#             # print(pos)
-#             for idx, u in enumerate(user):
-#                 u_number = int(u)+1
-#                 topk_li = [int(ki) for ki in topk_idx[idx]]
-#                 rec_result[u_number] = topk_li
-    
-#         for uu in range(num_of_target_users+1, num_of_all_users+1):
-#             # print(uu)
-#             uu = torch.tensor(uu-1)
-#             uu = uu.to(device)
-#             batch_scores = net.full_query(uu, method=0)
-#             _, topk_idx = torch.topk(batch_scores, 30, dim=-1)
-#             topk_li = [int(ki) for ki in topk_idx]
-#             rec_result[int(uu)+1] = topk_li
-
-#     return rec_result

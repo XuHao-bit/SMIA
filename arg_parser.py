@@ -7,7 +7,6 @@ def boolean_string(s):
     return s == 'True'
 
 def parse_args():
-    # 用parser的话可以命令行写入参数  python main.py --hop 2 --hidden 32
     parser = argparse.ArgumentParser() 
     parser.add_argument('--dataset', default='ciao')
     # parser.add_argument('--data_dir', default='../raw dataset/ciao/ciao20230314.pkl')
@@ -25,14 +24,14 @@ def parse_args():
     parser.add_argument('--hop', default=2, type=int) # 3
     parser.add_argument('--hidden', default=64, type=int)
     parser.add_argument('--dropout', default=0.5, type=float)
-    parser.add_argument('--neg', default=1, type=int) # 训练时的neg sample
+    parser.add_argument('--neg', default=1, type=int) # neg sample
     # parser.add_argument('--split', default=0.8, type=float)
-    parser.add_argument('--std', default=0.1, type=float) # 无用
+    parser.add_argument('--std', default=0.1, type=float) # no use
     parser.add_argument('--decay', default=1e-3, type=float)
     
     # IDGL hyper_parameter 
     parser.add_argument('--graph_learn_hidden_size', default=70, type=int)
-    parser.add_argument('--graph_learn_top_k_S', default=30, type=int) # 无用
+    parser.add_argument('--graph_learn_top_k_S', default=30, type=int) # no use
     parser.add_argument('--graph_learn_epsilon', default=0, type=float)
     parser.add_argument('--graph_skip_conn', default=0.8, type=float)
     parser.add_argument('--graph_learn_num_pers', default=4, type=int)
@@ -41,8 +40,8 @@ def parse_args():
     # ssl hyper_parameter
     parser.add_argument('--ssl_temp', default=0.2, type=float)
     parser.add_argument('--ssl_reg', default=1e-6, type=float) # 0.1/0.2
-    parser.add_argument('--ssl_ratio', default=0.1, type=float) # 无用
-    parser.add_argument('--ssl_aug_type', default='ed', type=str) # 无用
+    parser.add_argument('--ssl_ratio', default=0.1, type=float) # no use
+    parser.add_argument('--ssl_aug_type', default='ed', type=str) # no use
     
     # recon hyper_parameter
     parser.add_argument('--recon_reg', default=0.2, type=float)
@@ -57,7 +56,7 @@ def parse_args():
     parser.add_argument('--seed', default=42, type=int) 
     
     # parser.add_argument('--shadow_name', default='DESIGN-shadow-e100.pth', type=str) 
-    parser.add_argument('--trained_name', default='DESIGN-ciao-final.pth', type=str)  # 正常训练好的推荐模型，只开放推荐接口
+    parser.add_argument('--trained_name', default='DESIGN-ciao-final.pth', type=str)  # the trained model to be attacked
     parser.add_argument('--shadow_train', default='shadow_ciao_train.csv', type=str) 
     parser.add_argument('--shadow_test', default='shadow_ciao_test.csv', type=str)  
     parser.add_argument('--model_save_name', default=None, type=str)  
@@ -92,7 +91,7 @@ def parse_args():
     if not args.is_shadow:
         if args.dataset == 'ciao':
             data_name = 'ciao20230314.pkl' 
-            # 是训练时候简单测试用的，真实测试用不到
+            # used for simply test when training, it can be ANY generated train & test file; 
             args.ppmain_trn = f'../raw dataset/ciao/social_mia/mia_train_shadow_0.1_ciao.csv'
             args.ppmain_tst = f'../raw dataset/ciao/social_mia/mia_test_shadow_0.1_ciao.csv'
         elif args.dataset == 'flickr':
@@ -105,7 +104,6 @@ def parse_args():
     else: # train shadow rec model
         data_name = f'{args.shadow_prefix}/{args.shadow_dataset}'
         args.model_save_name = f'shadow_{args.shadow_ratio}_{args.trained_name}'
-        # 因为每个model的shadow dataset不一样，所以在model自己的文件夹下找shadow dataset
         args.data_dir = data_name
 
     return args

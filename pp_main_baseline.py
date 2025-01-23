@@ -17,7 +17,7 @@ import math
  
 
 def ldp_add_noise(model, ep, named_scale, batch_len, device):
-    delta = 1e-5 # 社交推荐数据集的量都是这个级别
+    delta = 1e-5 #    
     noise_multiplier = math.sqrt(2 * math.log(1.25 / delta)) / (ep * batch_len)
     for name, param in model.named_parameters():
         if param.grad != None:
@@ -30,10 +30,9 @@ def ldp_add_noise(model, ep, named_scale, batch_len, device):
                 grad.mul_(clip_threshold / grad_norm)
             # print(param.grad.data)
 
-            # clip_threshold noise scale计算有问题；
             noise_scale = clip_threshold * noise_multiplier
             # print(noise_multiplier, clip_threshold)
-            noise = torch.distributions.Normal(0, noise_scale).sample(grad.size()).to(device)  # 高斯噪声
+            noise = torch.distributions.Normal(0, noise_scale).sample(grad.size()).to(device)  
 
             # print(noise)
             mask = param.grad != 0
@@ -67,7 +66,6 @@ def train(args, net, optimizer, trainloader, epoch, device, last_uembs):
     train_loss, train_pploss = 0, 0
     train_num = 0
     named_grad = {}
-    # 此循环一次运行一个batch的数据  features: torch.Size([B,...]) tqdm是运行batch_idx进度 1，2，3，第几个batch进行过计算了
     for batch_idx, (user, pos, neg) in enumerate(tqdm(trainloader, file=sys.stdout)):
         user = user.to(device)  # [B]
         pos_item = pos.to(device)  # [B]
@@ -87,7 +85,7 @@ def train(args, net, optimizer, trainloader, epoch, device, last_uembs):
         # print(l)
         optimizer.zero_grad()
         batch_loss.backward()
-        batch_len = user.shape[0] # 因为敏感度计算的是单个样本产生的梯度的norm，因此计算noise_scale的时候要除以batch size
+        batch_len = user.shape[0] #
         if args.pp_mtd == 'dp':
             named_grad, this_grad = print_grad_scale(net, named_grad)
             ldp_add_noise(net, args.dp_ep, this_grad, batch_len, device)
@@ -95,14 +93,8 @@ def train(args, net, optimizer, trainloader, epoch, device, last_uembs):
         train_loss += l.item()
         train_num += user.shape[0]
         
-    # writer.add_scalars("BP_4_64_alpha0/Training Loss", {"Social Domain Loss": social_loss, "Item Domain Loss": item_loss}, epoch+1)
-    # writer.add_scalar("Training Loss", train_loss, epoch+1)
-    # print(f'Training on Epoch {epoch + 1}  [train_loss {float(train_loss):f}]')
-    # for name, grad in named_grad.items():
-    #     logging.info(f'param_name: {name}, grad value: {grad/(batch_idx+1)}')
     return train_loss / train_num, train_pploss / train_num
 
-# validate 利用评价指标criterion验证模型效果 (也可以用loss) 应该利用全部的验证集 123
 def validate(net, config, valid_loader, epoch, device):
     net.eval()
     NDCG_5 = 0.0
@@ -121,9 +113,6 @@ def validate(net, config, valid_loader, epoch, device):
             neg_items = negs.to(device)  # [B, 999]
             epoch = torch.LongTensor([epoch])
             epoch = epoch.to(device)
-            # indices = net.batch_full_sort_predict(user, pos_item, neg_items) # [B, 1000] [B,1]
-            # indices = indices.cpu().numpy() 
-            # # 计算一个batch的rank情况
             HT_5_B, HT_10_B, HT_15_B, NDCG_5_B, NDCG_10_B, NDCG_15_B = net.batch_full_sort_predict(user, pos_item, neg_items, epoch) # compute_rank(indices)
             HT_5 += HT_5_B.item()
             HT_10 += HT_10_B.item()
@@ -148,11 +137,11 @@ if __name__ == '__main__':
     
     # f = open(log_dir, 'a')
     logging.info(str(device))
-    set_seed(42) # 先声明device再声明seed
+    set_seed(42) #  
     
     # dataset
     data_file = open(args.data_dir, 'rb')
-    # 数据集必须处理成这种形式 这样划分训练测试集时才能保证每一个user都有一部分进训练一部分进测试
+    #   
     # uid: 1--num_of_target_users, num_of_target_users+1--num_of_all_users
     # itemid: num_of_all_users+1--num_of_nodes
     history_u_lists, _, social_adj_lists, _, _, avg_interaction, avg_friend, \
@@ -180,15 +169,15 @@ if __name__ == '__main__':
     
     # dataset split
     # train_data, test_data = datasetsplit(history_u_lists, args.split)
-    train_data, valid_data, test_data = leave_one_out_split(history_u_lists) # 需要固定随机数种子 否则adj_mat每次都会不一样
+    train_data, valid_data, test_data = leave_one_out_split(history_u_lists) #    
     
     # dataloader
     train_loader = get_train_loader(config=config, train_data=train_data, args=args)
-    valid_loader = get_valid_loader(config=config, valid_data=valid_data, args=args) # full test的话，改这里；
+    valid_loader = get_valid_loader(config=config, valid_data=valid_data, args=args) #     ；
     # load adj mat
     _, _, uu_social_adj_mat, A_tr, _ = get_adj_mat(config, args, valid_data, test_data)
     spRRT_tr, spRRT_val = get_spRRT(config, args, valid_data, test_data)
-    # 稀疏矩阵卷积额外写
+    #     
     config['RRT_tr'] = spRRT_tr # sp
     config['S'] = uu_social_adj_mat # np
     config['A_tr'] = A_tr # sp
@@ -199,7 +188,7 @@ if __name__ == '__main__':
     # decay = [1e-3]
     # kl_reg = [0]
     # pri_coefs = [0.1, 0.3, 0.5, 1., 1.5]
-    pri_ratios = [1] # 每次训练defender和pp loss的比例
+    pri_ratios = [1] #     
 
     # args.pp_mtd = 'dp'
     dp_eps = [2.]
@@ -216,16 +205,16 @@ if __name__ == '__main__':
             # args.decay = i
             # args.kl_reg = j
             # early stopping parameter
-            test_all_step = 1  # test_all_step=x:每x个epoch在验证集上evaluate一次
-            best_valid_score = -100000 # best_valid_score和bigger搭配使用 评价指标越大越好
+            test_all_step = 1  # test_all_step=x:    
+            best_valid_score = -100000 # best_valid_score    
             bigger = True
-            conti_step = 0  # 有连续几次验证效果没有超过best
-            stopping_step = 10  # 如果连续有n次的验证效果没有超过best 则将early stop
+            conti_step = 0  #     
+            stopping_step = 10  #     
             
             t = get_local_time()
             # dir = f'runs/decay{args.decay}_kl_reg{args.kl_reg}_time{t}'
             # writer = tb.SummaryWriter(log_dir=dir)
-            # 模型
+            #     
             if args.is_shadow:
                 net = Shadow_Model(config=config, args=args, device=device)
             else:
@@ -234,22 +223,15 @@ if __name__ == '__main__':
             # Learning Algorithm
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=args.learning_rate)
 
-            # 模型超参数验证结果保存 网络训练参数保存
-            # output_dir =  f"./log/{args.dataset}/{t}" # 模型超参数以及结果保存
+            #     
+            # output_dir =  f"./log/{args.dataset}/{t}" #         
             # mkdir_ifnotexist(output_dir)
             # mkdir_ifnotexist('./saved')
             print(get_parameter_number(net))
-            logging.info(f'模型总参数：{get_parameter_number(net)}')
-            logging.info('-------------------')
-            logging.info('超参数如下:')
-            logging.info('\n'.join([str(k) + ': ' + str(v) for k, v in vars(args).items()]))
-            logging.info('-------------------')
-            logging.info('输出记录如下')
-            logging.info('-----------------')
             
             bestht = [0.0] * 6
             last_uembs = None
-            # 训练 验证
+            #     
             for epoch in range(args.num_epoch):
                 this_uembs = net.gen_all_uemb()['user_embs.weight']
                 train_loss, pp_loss = train(args, net, optimizer, train_loader, epoch, device, last_uembs)
@@ -271,7 +253,7 @@ if __name__ == '__main__':
                 a = f'[Epoch {epoch+1}]: HT@5:{HT5:.4f} HT@10:{HT10:.4f} NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}'
                 logging.info(a)
 
-                # 早停&模型训练参数保存
+                #     
                 save_name = f'{args.model_name}-{t}.pth' if not args.model_save_name else args.model_save_name
                 pth_dir = f'./saved/{args.dataset}/{save_name}'
                 valid_result = HT5+HT10
@@ -290,23 +272,3 @@ if __name__ == '__main__':
             
             HT5, HT10, HT15, NDCG5, NDCG10, NDCG15 = bestht
             logging.info(f"[FINAL] HT@5:{HT5:.4f} HT@10:{HT10:.4f} NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}")
-
-            # # test
-            # new_model = torch.load(pth_dir)
-            # net.load_state_dict(new_model)
-            # set_seed(42)
-            # val_loss, HT5, HT10, HT15, NDCG5, NDCG10, NDCG15 = validate(net, config, valid_loader, epoch, device)
-            # a = f'[Load Test]: HT@5:{HT5:.4f} HT@10:{HT10:.4f} NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}'
-            # logging.info(a)
-            # set_seed(42)
-            # val_loss, HT5, HT10, HT15, NDCG5, NDCG10, NDCG15 = validate(net, config, valid_loader, epoch, device)
-            # a = f'[Load Test]: HT@5:{HT5:.4f} HT@10:{HT10:.4f} NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}'
-            # logging.info(a)
-            # set_seed(42)
-            # val_loss, HT5, HT10, HT15, NDCG5, NDCG10, NDCG15 = validate(net, config, valid_loader, epoch, device)
-            # a = f'[Load Test]: HT@5:{HT5:.4f} HT@10:{HT10:.4f} NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}'
-            # logging.info(a)
-
-        
-    # f.close()
-    # writer.close()

@@ -26,7 +26,6 @@ def train(net, optimizer, trainloader, epoch, device):
     
     train_loss = 0
     train_num = 0
-    # 此循环一次运行一个batch的数据  features: torch.Size([B,...]) tqdm是运行batch_idx进度 1，2，3，第几个batch进行过计算了
     for batch_idx, (user, pos, neg) in enumerate(tqdm(trainloader, file=sys.stdout)):
         user = user.to(device)  # [B]
         pos_item = pos.to(device)  # [B]
@@ -45,7 +44,6 @@ def train(net, optimizer, trainloader, epoch, device):
     # print(f'Training on Epoch {epoch + 1}  [train_loss {float(train_loss):f}]')
     return train_loss / train_num
 
-# validate 利用评价指标criterion验证模型效果 (也可以用loss) 应该利用全部的验证集 123
 def validate(net, config, train_data, valid_loader, epoch, device):
     net.eval()
     NDCG_5 = 0.0
@@ -73,7 +71,6 @@ def validate(net, config, train_data, valid_loader, epoch, device):
             epoch = epoch.to(device)
             # indices = net.batch_full_sort_predict(user, pos_item, neg_items) # [B, 1000] [B,1]
             # indices = indices.cpu().numpy() 
-            # # 计算一个batch的rank情况
             HT_5_B, HT_10_B, HT_15_B, NDCG_5_B, NDCG_10_B, NDCG_15_B = net.batch_full_sort_predict(user, pos_item, neg_items, epoch) # compute_rank(indices)
             HT_5 += HT_5_B.item()
             HT_10 += HT_10_B.item()
@@ -90,7 +87,7 @@ def validate(net, config, train_data, valid_loader, epoch, device):
         return val_loss / val_num, HT_5 / valid_user, HT_10 / valid_user, HT_15 / valid_user, NDCG_5 / valid_user, NDCG_10 / valid_user, NDCG_15 / valid_user
 
 def get_pos_items_per_user(valid_data, train_data, config):
-    # train_data, valid_data中的iid从n_users开始编号
+    # train_data, valid_data
     u_ids = []
     i_ids = []
     train_pos_len_list = []
@@ -115,11 +112,10 @@ if __name__ == '__main__':
     
     # f = open(log_dir, 'a')
     logging.info(str(device))
-    set_seed(42) # 先声明device再声明seed
+    set_seed(42) #  
     
     # dataset
     data_file = open(args.data_dir, 'rb')
-    # 数据集必须处理成这种形式 这样划分训练测试集时才能保证每一个user都有一部分进训练一部分进测试
     # uid: 1--num_of_target_users, num_of_target_users+1--num_of_all_users
     # itemid: num_of_all_users+1--num_of_nodes
     history_u_lists, _, social_adj_lists, _, _, avg_interaction, avg_friend, \
@@ -133,15 +129,15 @@ if __name__ == '__main__':
     config['user_social'] = social_adj_lists
     
     # dataset split
-    train_data, valid_data, test_data = leave_one_out_split(history_u_lists) # 需要固定随机数种子 否则adj_mat每次都会不一样
+    train_data, valid_data, test_data = leave_one_out_split(history_u_lists) # need to fix the random seed
     
     # dataloader
     train_loader = get_train_loader(config=config, train_data=train_data, args=args)
-    valid_loader = get_valid_loader(config=config, valid_data=valid_data, args=args, num_negs=1) # full test的话，改这里；
+    valid_loader = get_valid_loader(config=config, valid_data=valid_data, args=args, num_negs=1) # 
     # load adj mat
     uu_collab_adj_mat_tr, uu_collab_adj_mat_val, uu_social_adj_mat, A_tr, A_val = get_adj_mat(config, args, valid_data, test_data)
     spRRT_tr, spRRT_val = get_spRRT(config, args, valid_data, test_data)
-    # 稀疏矩阵卷积额外写
+
     config['RRT_tr'] = spRRT_tr # sp
     config['S'] = uu_social_adj_mat # np
     config['A_tr'] = A_tr # sp
@@ -152,28 +148,12 @@ if __name__ == '__main__':
     print(net)
     print(args)
     net = net.to(device)    
-    # pth_dir = f'./saved/flickr/DESIGN-Dec-04-23h21m23s.pth'  # 正常训练的推荐模型
-    # pth_dir = f'./saved/ciao/DESIGN-Dec-12-19h10m03s.pth' # 隐私推荐模型
-    pth_dir = f'./saved/{args.dataset}/{args.trained_name}' # 隐私推荐模型
+    # pth_dir = f'./saved/flickr/DESIGN-Dec-04-23h21m23s.pth'  
+    # pth_dir = f'./saved/ciao/DESIGN-Dec-12-19h10m03s.pth' 
+    pth_dir = f'./saved/{args.dataset}/{args.trained_name}' 
     new_model = torch.load(pth_dir)
     net.load_state_dict(new_model)
 
-    # 遍历valid dataset
-    # 可以按照uidx+1从train_data和val_data中得到对应的train item和val item；uidx是dataloader的idx；
-    # for _, (va_user, va_pos, va_negs) in enumerate(tqdm(valid_loader, file=sys.stdout)):
-
-    #     for vu, vi in zip(va_user, va_pos):
-    #         print('val user', vu)
-    #         print('val item', vi)
-    #         print('train item', train_data[int(vu)+1])
-    #         print('val item', valid_data[int(vu)+1])
-    #         print('\n')
-
-
-    
-    # 构造一个[2:x]的矩阵，x=所有user的正样本个数之和
-    # [[0, 0], [11, 12]], 代表uid=0，交互过iids=11,12 两个正样本; 这里的uid从0开始，与dataloader保持一致，比data中小1
-    # 这里生成的有问题，item idx会超范围
     users_pos_items, train_pos_len_list = get_pos_items_per_user(valid_data, train_data, config)
 
     net.eval()
@@ -190,18 +170,17 @@ if __name__ == '__main__':
             num_pos_items = sum(train_pos_len_list[vuser_pt: vuser_pt+this_bs]) # get the num of pos items this batch user interacted
             batch_mask = users_pos_items[:, positem_pt: positem_pt+num_pos_items]
             # print(batch_mask)
-            batch_mask[0] -= vuser_pt # 在batch中的相对位置
+            batch_mask[0] -= vuser_pt # 
             positem_pt += num_pos_items
             vuser_pt += this_bs
 
             user = user.to(device)  # [B]
-            # 不同的inference方式
             # batch_scores = net.full_query(user, method=1) # social only
             batch_scores = net.full_query(user, method=test_mtd) # UI only
 
             # print(batch_scores.shape)
             # print(batch_mask, batch_mask[0].max(), batch_mask[1].max())
-            batch_scores[batch_mask[0], batch_mask[1]] = -1e10 # 把batch中的user交互过的pos item给mask掉
+            batch_scores[batch_mask[0], batch_mask[1]] = -1e10 #
             _, topk_idx = torch.topk(batch_scores, args.rec_lens, dim=-1)
             # print(topk_idx, topk_idx.shape)
             # print(pos)
@@ -224,24 +203,3 @@ if __name__ == '__main__':
     # with open("ciao_design_result_sicial-top30.pkl", 'wb') as fo:
     with open(f"{args.shadow_prefix}/{args.rec_result}", 'wb') as fo:
         pickle.dump(rec_result, fo)
-
-#     # test
-    # epoch = 0  
-    # set_seed(42)
-    # valid_loader = get_valid_loader(config=config, valid_data=valid_data, args=args, num_negs=9999) # full test的话，改这里；
-    # val_loss, HT5, HT10, HT15, NDCG5, NDCG10, NDCG15 = validate(net, config, train_data, valid_loader, epoch, device)
-    # # a = f'[Load Test]: HT@5:{HT5:.4f} HT@10:{HT10:.4f} HT NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}'
-    # print(HT15)
-#     logging.info(a)
-#     set_seed(42)
-#     val_loss, HT5, HT10, HT15, NDCG5, NDCG10, NDCG15 = validate(net, config, train_data, valid_loader, epoch, device)
-#     a = f'[Load Test]: HT@5:{HT5:.4f} HT@10:{HT10:.4f} NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}'
-#     logging.info(a)
-#     set_seed(42)
-#     val_loss, HT5, HT10, HT15, NDCG5, NDCG10, NDCG15 = validate(net, config, train_data, valid_loader, epoch, device)
-#     a = f'[Load Test]: HT@5:{HT5:.4f} HT@10:{HT10:.4f} NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}'
-#     logging.info(a)
-
-
-# # f.close()
-# # writer.close()

@@ -41,7 +41,6 @@ for k in rec_result.keys():
 shadow_param = torch.load(config['param_path'])
 
 # dataloader
-# mia attack 使用shadow model的lightgcn+social的单branch embedding
 shadow_attack_param = {'user_embs.weight': shadow_param['user1_embs.weight'], 'item_embs.weight': shadow_param['item1_embs.weight']}
 
 train_dataset = atkData(config, 'train', rec_result=rec_result, shadow_param=shadow_attack_param, mtd=config['agg_mtd'])

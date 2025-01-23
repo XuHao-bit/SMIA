@@ -57,8 +57,6 @@ config['n_items'] = num_of_nodes-num_of_all_users
 uu_social_adj_mat = np.load(dir2)     
 uu_social_adj_mat = uu_social_adj_mat['all']
 A_tr = sp.load_npz(dir3)
-# spRRT_tr, spRRT_val = get_spRRT(config, args, valid_data, test_data)
-# 稀疏矩阵卷积额外写
 config['RRT_tr'] = None # sp
 config['S'] = uu_social_adj_mat # np
 config['A_tr'] = A_tr # sp
@@ -74,21 +72,6 @@ net.load_state_dict(shadow_param)
 shadow_attack_param = {'user_embs_S.weight': shadow_param['user1_embs.weight'], 'user_embs_A.weight': shadow_param['user2_embs.weight'],
                 'item_embs_S.weight': shadow_param['item1_embs.weight'], 'item_embs_A.weight': shadow_param['item2_embs.weight']}
 
-# 验证了config['S']是shadow graph
-# dataset = '../raw dataset/ciao/ciao20230314.pkl' 
-# data_file = open(dataset, 'rb')
-# rec_result, _, social_graph_gt, _, _, _, _, num_of_target_users, num_of_all_users, num_of_nodes = pickle.load(data_file)
-# for u in social_graph_gt:
-#     for u2 in social_graph_gt[u]:
-#         if config['S'][u-1][u2-1] == 0:
-#             print(1)
-
-# data_file = open(config['shadow_dataset'], 'rb')
-# rec_result, _, fake_social, _, _, _, _, num_of_target_users, num_of_all_users, num_of_nodes = pickle.load(data_file)
-# for u in fake_social:
-#     for u2 in fake_social[u]:
-#         if config['S'][u-1][u2-1] == 0:
-#             print(0)
 
 
 if config['agg_mtd'] == 'iemb':    
@@ -119,10 +102,6 @@ for pri_lr in pri_lrs:
     criterion = nn.BCELoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=config['pri_lr'], momentum=0.9, weight_decay=0)
 
-    # print('begin train map func')
-    # train map function
-    # train_deUI(args, model, shadow_param, rec_result, train_data, test_data)
-
     # train attacker model
     best_record = (0, 0, 0, 0)
     best_model = None
@@ -130,19 +109,6 @@ for pri_lr in pri_lrs:
     record_loss = []
     print('begin train')
     
-    # model.train()
-    # with torch.no_grad():
-    #     user_embs = shadow_param['user_embs.weight']
-    #     deuser_embs = model.deUI_func(user_embs)
-    #     item_embs = shadow_param['item_embs.weight']
-    # shadow_param2 = {'user_embs.weight': user_embs, 'deuser_embs.weight': deuser_embs, 'item_embs.weight': item_embs}
-
-    # model.eval()
-    # with torch.no_grad():
-    #     user_embs = shadow_param['user_embs.weight']
-    #     deuser_embs = model.deUI_func(user_embs)
-    #     item_embs = shadow_param['item_embs.weight']
-    # shadow_param2 = {'user_embs.weight': user_embs, 'deuser_embs.weight': deuser_embs, 'item_embs.weight': item_embs}
 
     for epoch in range(config['pri_epoch']):
         model.train()

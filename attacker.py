@@ -85,7 +85,7 @@ class EnDiscriminator(nn.Module):
             preds = (scores > torch.Tensor([0.5]).to(wide_emb.device)).float() * 1
             return output.squeeze(), preds
 
-# 跟attacker结构稍微不一致
+# we use a defender with different architecture with attacker
 class Defender(nn.Module):
     def __init__(self, embed_dim):
         super(Defender, self).__init__()

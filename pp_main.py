@@ -39,8 +39,6 @@ def pp_train(args, net, defender, train_df, already_u_pair, optimizer, trainload
 
     train_loss, train_pploss = 0, 0
     train_num = 0
-    # 此循环一次运行一个batch的数据  features: torch.Size([B,...]) tqdm是运行batch_idx进度 1，2，3，第几个batch进行过计算了
-    # for train_batch, pos_u_batch, neg_u_batch in tqdm(zip(trainloader, pos_dloader, neg_dloader), total=min(len(trainloader), len(pos_dloader))):
     for train_batch, pos_u_batch, neg_u_batch in tqdm(zip(trainloader, pos_dloader, neg_dloader), total=min(len(train_loader), len(pos_dloader))): # zip会在短的dataloader结束后停止
         user, pos, neg = train_batch
         user = user.to(device)  # [B]
@@ -74,7 +72,6 @@ def pp_train(args, net, defender, train_df, already_u_pair, optimizer, trainload
     # print(f'Training on Epoch {epoch + 1}  [train_loss {float(train_loss):f}]')
     return train_loss / train_num, train_pploss / len(pos_data)
 
-# validate 利用评价指标criterion验证模型效果 (也可以用loss) 应该利用全部的验证集 123
 def validate_with_fullrank(net, config, valid_loader, epoch, device, valid_data, train_data):
     net.eval()
     NDCG_5 = 0.0
@@ -119,11 +116,11 @@ def validate_with_fullrank(net, config, valid_loader, epoch, device, valid_data,
             num_pos_items = sum(train_pos_len_list[vuser_pt: vuser_pt+this_bs]) # get the num of pos items this batch user interacted
             batch_mask = users_pos_items[:, positem_pt: positem_pt+num_pos_items]
             # print(batch_mask)
-            batch_mask[0] -= vuser_pt # 在batch中的相对位置
+            batch_mask[0] -= vuser_pt 
             positem_pt += num_pos_items
             vuser_pt += this_bs
             batch_scores = net.full_query(user, method=0) # inference from uu+ui graph
-            batch_scores[batch_mask[0], batch_mask[1]] = -1e10 # 把batch中的user交互过的pos item给mask掉
+            batch_scores[batch_mask[0], batch_mask[1]] = -1e10 #
             _, topk_idx = torch.topk(batch_scores, 30, dim=-1)
             for idx, u in enumerate(user):
                 u_number = int(u)+1
@@ -145,7 +142,6 @@ def validate_with_fullrank(net, config, valid_loader, epoch, device, valid_data,
         return val_loss / val_num, HT_5 / valid_user, HT_10 / valid_user, HT_15 / valid_user, NDCG_5 / valid_user, NDCG_10 / valid_user, NDCG_15 / valid_user, rec_result
 
 def init_defend_dataset(social_adj_lists):
-    # 每个epoch sample一部分数据当作training defender；
     training_dataset = {
         'user1': [],
         'user2': [],
@@ -162,7 +158,6 @@ def init_defend_dataset(social_adj_lists):
     return train_df, already_u_pair
 
 def gen_defend_df(train_df, already_u_pair, ratio=0.25):
-    # 每次从train_df中sample ratio 的正样本，然后生成同样数量的负样本
     sampled_df = train_df.sample(frac=ratio).reset_index(drop=True)
     neg_dataset = {
         'user1': [],
@@ -218,7 +213,7 @@ def train_defender(args, defender, train_all_df, already_u_pair, net_param, defd
 def mia_attack(args, rec_result, shadow_param):    
     config = vars(args)
     # path = f'../raw dataset/{args.dataset}/social_mia/'
-    config['train_path'] = args.ppmain_trn # 这里就是仿真mia attack，所以随便一个范围的shadow dataset即可
+    config['train_path'] = args.ppmain_trn # 
     config['test_path'] = args.ppmain_tst
     # config['rec_len'] = 30
 
@@ -228,7 +223,7 @@ def mia_attack(args, rec_result, shadow_param):
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=4096)
 
-    atk_epoch = 25 # 这个只是用来模拟一个攻击，以及判定防御成功
+    atk_epoch = 25 # 
     early_stop = EarlyStopping(10)
 
     # model
@@ -304,11 +299,11 @@ if __name__ == '__main__':
     
     # f = open(log_dir, 'a')
     logging.info(str(device))
-    set_seed(42) # 先声明device再声明seed
+    set_seed(42) #  
     
     # dataset
     data_file = open(args.data_dir, 'rb')
-    # 数据集必须处理成这种形式 这样划分训练测试集时才能保证每一个user都有一部分进训练一部分进测试
+    #   
     # uid: 1--num_of_target_users, num_of_target_users+1--num_of_all_users
     # itemid: num_of_all_users+1--num_of_nodes
     history_u_lists, _, social_adj_lists, _, _, avg_interaction, avg_friend, \
@@ -340,23 +335,22 @@ if __name__ == '__main__':
     
     # dataset split
     # train_data, test_data = datasetsplit(history_u_lists, args.split)
-    train_data, valid_data, test_data = leave_one_out_split(history_u_lists) # 需要固定随机数种子 否则adj_mat每次都会不一样
+    train_data, valid_data, test_data = leave_one_out_split(history_u_lists) #    
     
     # dataloader
     train_loader = get_train_loader(config=config, train_data=train_data, args=args)
-    valid_loader = get_valid_loader(config=config, valid_data=valid_data, args=args) # full test的话，改这里；
+    valid_loader = get_valid_loader(config=config, valid_data=valid_data, args=args) #     ；
     # load adj mat
     uu_collab_adj_mat_tr, uu_collab_adj_mat_val, uu_social_adj_mat, A_tr, A_val = get_adj_mat(config, args, valid_data, test_data)
     spRRT_tr, spRRT_val = get_spRRT(config, args, valid_data, test_data)
-    # 稀疏矩阵卷积额外写
+    #     
     config['RRT_tr'] = spRRT_tr # sp
     config['S'] = uu_social_adj_mat # np
     config['A_tr'] = A_tr # sp
 
     pri_coefs = [0.01]
-    pri_ratios = [1] # 每次训练defender和pp loss的比例
+    pri_ratios = [1] #     
     # def_losses = ['cl']
-    # pri_epoch 也是一个超参
     # pri_coefs = [0.1, 0.2, 0.3, 0.4, 0.5]
 
     for pri_coef in pri_coefs:
@@ -364,14 +358,14 @@ if __name__ == '__main__':
             args.pri_coef = pri_coef
             args.pri_ratio = pri_ratio
             # early stopping parameter
-            test_all_step = 1  # test_all_step=x:每x个epoch在验证集上evaluate一次
-            best_valid_score = -100000 # best_valid_score和bigger搭配使用 评价指标越大越好
+            test_all_step = 1  # test_all_step=x:    
+            best_valid_score = -100000 # best_valid_score    
             bigger = True
-            conti_step = 0  # 有连续几次验证效果没有超过best
-            stopping_step = 10  # 如果连续有n次的验证效果没有超过best 则将early stop
+            conti_step = 0  #     
+            stopping_step = 10  #     
             
             t = get_local_time()
-            # 模型
+            #     
             net = create_model(config=config, args=args, device=device)
             net = net.to(device)    
             # Learning Algorithm
@@ -383,18 +377,10 @@ if __name__ == '__main__':
             defdr_optimizer = torch.optim.Adam(defender.parameters(), lr=args.dfd_lr)
 
             print(get_parameter_number(net))
-            logging.info(f'模型总参数：{get_parameter_number(net)}')
-            logging.info('-------------------')
-            logging.info('超参数如下:')
-            logging.info('\n'.join([str(k) + ': ' + str(v) for k, v in vars(args).items()]))
-            logging.info('-------------------')
-            logging.info('输出记录如下')
-            logging.info('-----------------')
             
             bestht = [0.0] * 6
-            # 训练 验证
+            #     
             for epoch in range(args.num_epoch):
-                # 在epoch里面，训练defender
                 if epoch >= args.defend_warm:
                     train_def_loss = train_defender(args, defender, train_all_df, already_u_pair, net.gen_all_uemb(), defdr_optimizer)
                     logging.info('Defender Trn_Loss={:.5f}'.format(train_def_loss))
@@ -412,7 +398,7 @@ if __name__ == '__main__':
                 a = f'[Epoch {epoch+1}]: HT@5:{HT5:.4f} HT@10:{HT10:.4f} NDCG@5:{NDCG5:.4f} NDCG@10:{NDCG10:.4f}'
                 logging.info(a)
 
-                # 早停&模型训练参数保存
+                #     
                 save_name = f'{args.model_name}-{t}.pth' if not args.model_save_name else args.model_save_name
                 pth_dir = f'./saved/{args.dataset}/{save_name}'
                 valid_result = HT5+HT10
@@ -429,7 +415,6 @@ if __name__ == '__main__':
                     logging.info('\n'+stop_output)
                     break
                 
-                # 进行随着训练的mia attack；这个是fake mia attack，因为shadow param直接拿rec param模拟的，并没有重新根据rec result来train shadow model；
                 # record rec result
                 if epoch >= args.defend_warm and epoch % 2 == 0:
                     shadow_param = copy.deepcopy(net.state_dict())
